@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensure proper scaling on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Assignment Tracker</title>
+  
+  <!-- Google Font for a modern look -->
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,700&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap CSS from CDN -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    crossorigin="anonymous"
+  />
+
+  <!-- Inline CSS for styling -->
+  <style>
+    body {
+      background: #f8f9fa;
+      font-family: 'Montserrat', sans-serif;
+      color: #333;
+    }
+    .container {
+      margin-top: 50px;
+      padding: 15px;
+    }
+    /* Card styles for a professional look */
+    .card {
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+    .card-header {
+      background-color: #007bff;
+      color: #fff;
+      text-align: center;
+      padding: 1rem;
+      font-size: 1.25rem;
+      font-weight: 500;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+    .card-body {
+      padding: 2rem;
+    }
+    /* Form styles */
+    .form-label {
+      font-weight: 500;
+    }
+    .form-control {
+      border-radius: 5px;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+      border-radius: 5px;
+      font-weight: 500;
+    }
+    .btn-primary:hover {
+      background-color: #0069d9;
+      border-color: #0062cc;
+    }
+    /* Table styles */
+    .table-responsive {
+      margin-top: 20px;
+    }
+    .table {
+      background-color: #ffffff;
+      border-collapse: separate;
+      border-spacing: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .table th,
+    .table td {
+      border: 1px solid #dee2e6;
+      padding: 15px;
+      vertical-align: middle;
+      text-align: center;
+    }
+    .table thead th {
+      background-color: #f1f1f1;
+      font-weight: 500;
+    }
+    .table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+    .assignment-cell input {
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+    .submission-date {
+      font-size: 0.8rem;
+      color: #28a745;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Card Component -->
+    <div class="card">
+      <div class="card-header">
+        Student Assignment Tracker
+      </div>
+      <div class="card-body">
+        <!-- Form to add a new student manually (optional) -->
+        <form id="studentForm" class="mb-4">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label for="rollNo" class="form-label">Roll No</label>
+              <input type="text" class="form-control" id="rollNo" placeholder="Enter roll no" required />
+            </div>
+            <div class="col-md-5">
+              <label for="name" class="form-label">Student Name</label>
+              <input type="text" class="form-control" id="name" placeholder="Enter student name" required />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary w-100">Add</button>
+            </div>
+          </div>
+        </form>
+        
+        <!-- Responsive Table -->
+        <div class="table-responsive">
+          <table class="table">
+            <thead class="table-light">
+              <tr>
+                <th>Roll No</th>
+                <th>Name</th>
+                <th>Assignment 1</th>
+                <th>Assignment 2</th>
+                <th>Assignment 3</th>
+                <th>Assignment 4</th>
+                <th>Assignment 5</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody">
+              <!-- Table rows will be injected here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline JavaScript -->
+  <script>
+    // Set the API base URL (update if your backend is hosted elsewhere)
+    const API_BASE = 'http://localhost:3000/api/students';
+    let students = [];
+
+    // Helper function to create a default assignments object
+    function createAssignments() {
+      return {
+        assignment1: { completed: false, date: "" },
+        assignment2: { completed: false, date: "" },
+        assignment3: { completed: false, date: "" },
+        assignment4: { completed: false, date: "" },
+        assignment5: { completed: false, date: "" }
+      };
+    }
+
+    // Load pre-populated students from the server
+    function loadStudents() {
+      fetch(API_BASE)
+        .then(response => response.json())
+        .then(data => {
+          students = data;
+          renderTable();
+        })
+        .catch(err => console.error('Error loading students:', err));
+    }
+
+    // Add a new student (via the form)
+    function addStudent(rollNo, name) {
+      const newStudent = { rollNo, name, assignments: createAssignments() };
+      fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newStudent)
+      })
+      .then(response => response.json())
+      .then(student => {
+        students.push(student);
+        renderTable();
+      })
+      .catch(err => console.error('Error adding student:', err));
+    }
+
+    // Update a student on the server (when a checkbox is modified)
+    function updateStudent(student) {
+      fetch(`${API_BASE}/${student.rollNo}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(student)
+      })
+      .then(response => response.json())
+      .then(updatedStudent => {
+        // Optionally update local array if needed
+        const index = students.findIndex(s => s.rollNo == updatedStudent.rollNo);
+        if (index !== -1) {
+          students[index] = updatedStudent;
+        }
+      })
+      .catch(err => console.error('Error updating student:', err));
+    }
+
+    // Render the table with student data and assignment checkboxes
+    function renderTable() {
+      const studentTableBody = document.getElementById('studentTableBody');
+      studentTableBody.innerHTML = "";
+      students.forEach((student, studentIndex) => {
+        const tr = document.createElement('tr');
+        // Roll No cell
+        const tdRoll = document.createElement('td');
+        tdRoll.textContent = student.rollNo;
+        tr.appendChild(tdRoll);
+        // Name cell
+        const tdName = document.createElement('td');
+        tdName.textContent = student.name;
+        tr.appendChild(tdName);
+        // Create cells for each of the 5 assignments
+        for (let i = 1; i <= 5; i++) {
+          const assignmentKey = 'assignment' + i;
+          const tdAssignment = document.createElement('td');
+          tdAssignment.classList.add('assignment-cell');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'form-check-input';
+          checkbox.checked = student.assignments[assignmentKey].completed;
+          checkbox.disabled = student.assignments[assignmentKey].completed;
+          // When a checkbox is changed, update the assignment data and send a PUT request
+          checkbox.addEventListener('change', function() {
+            if (this.checked) {
+              const currentDate = new Date().toLocaleDateString();
+              student.assignments[assignmentKey].completed = true;
+              student.assignments[assignmentKey].date = currentDate;
+              this.disabled = true;
+              const dateSpan = document.createElement('div');
+              dateSpan.classList.add('submission-date');
+              dateSpan.textContent = "Submitted: " + currentDate;
+              tdAssignment.appendChild(dateSpan);
+              updateStudent(student);
+            }
+          });
+          tdAssignment.appendChild(checkbox);
+          // If already submitted, display the submission date
+          if (student.assignments[assignmentKey].completed && student.assignments[assignmentKey].date) {
+            const dateSpan = document.createElement('div');
+            dateSpan.classList.add('submission-date');
+            dateSpan.textContent = "Submitted: " + student.assignments[assignmentKey].date;
+            tdAssignment.appendChild(dateSpan);
+          }
+          tr.appendChild(tdAssignment);
+        }
+        studentTableBody.appendChild(tr);
+      });
+    }
+
+    // Event listener for the form submission to add a new student
+    document.getElementById('studentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const rollNo = document.getElementById('rollNo').value;
+      const name = document.getElementById('name').value;
+      addStudent(rollNo, name);
+      this.reset();
+    });
+
+    // Load students when the page loads
+    document.addEventListener('DOMContentLoaded', loadStudents);
+  </script>
+  
+  <!-- Bootstrap JS Bundle -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    crossorigin="anonymous"
+  ></script>
+</body>
+</html>
