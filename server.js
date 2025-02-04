@@ -1,24 +1,24 @@
-// server.js
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = 'students.json';
+const DATA_FILE = path.join(__dirname, 'students.json');
+
+// Enable CORS and JSON body parsing early
+app.use(cors());
+app.use(bodyParser.json());
 
 // Serve static files from the "public" directory
 app.use(express.static('public'));
 
 // Fallback route for the root URL to serve index.html
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
-// Enable CORS and JSON body parsing
-app.use(cors());
-app.use(bodyParser.json());
 
 // Helper function to load student data from file
 function loadStudents() {
