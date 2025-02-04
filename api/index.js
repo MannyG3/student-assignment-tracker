@@ -7,30 +7,31 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const DATA_FILE = path.join(__dirname, '..', 'students.json'); // students.json in the root folder
+const DATA_FILE = path.join(__dirname, '..', 'students.json'); // Ensure this file is in your repository root
 
 // Enable CORS and JSON body parsing
 app.use(cors());
 app.use(bodyParser.json());
 
-// Optionally, you can serve static files from /public if needed—but Vercel can serve them via vercel.json
-// app.use(express.static(path.join(__dirname, '..', 'public')));
-
-// API endpoint: GET all students
+// API endpoint: GET all students (asynchronous version)
 app.get('/api/students', (req, res) => {
-  let students = [];
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const data = fs.readFileSync(DATA_FILE, 'utf8');
-      students = data ? JSON.parse(data) : [];
+  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error reading file:', err);
+      return res.status(500).json({ error: 'Error reading student data' });
     }
-  } catch (err) {
-    console.error(err);
-  }
-  res.json(students);
+    let students = [];
+    try {
+      students = data ? JSON.parse(data) : [];
+    } catch (parseErr) {
+      console.error('Error parsing JSON:', parseErr);
+      return res.status(500).json({ error: 'Error parsing student data' });
+    }
+    res.json(students);
+  });
 });
 
-// API endpoint: POST add a new student
+// API endpoint: POST add a new student (synchronous for now, but consider converting to async)
 app.post('/api/students', (req, res) => {
   const newStudent = req.body;
   let students = [];
@@ -47,7 +48,7 @@ app.post('/api/students', (req, res) => {
   }
 });
 
-// API endpoint: PUT update a student by rollNo
+// API endpoint: PUT update a student by rollNo (synchronous for now)
 app.put('/api/students/:rollNo', (req, res) => {
   const rollNo = req.params.rollNo;
   const updatedStudent = req.body;
