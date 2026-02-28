@@ -5,11 +5,11 @@
     "assignments": {
       "assignment1": {
         "completed": true,
-        "date": "2/3/2025"
+        "date": "28/02/2026"
       },
       "assignment2": {
-        "completed": false,
-        "date": ""
+        "completed": true,
+        "date": "28/02/2026"
       },
       "assignment3": {
         "completed": false,
@@ -1146,6 +1146,32 @@
   {
     "rollNo": "45",
     "name": "WABALE SWAPNIL DATTATRAY",
+    "assignments": {
+      "assignment1": {
+        "completed": false,
+        "date": ""
+      },
+      "assignment2": {
+        "completed": false,
+        "date": ""
+      },
+      "assignment3": {
+        "completed": false,
+        "date": ""
+      },
+      "assignment4": {
+        "completed": false,
+        "date": ""
+      },
+      "assignment5": {
+        "completed": false,
+        "date": ""
+      }
+    }
+  },
+  {
+    "rollNo": "A001",
+    "name": "Alice",
     "assignments": {
       "assignment1": {
         "completed": false,

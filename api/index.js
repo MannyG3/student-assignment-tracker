@@ -1,75 +1,145 @@
-// api/index.js
-const serverless = require('serverless-http');
 const express = require('express');
-const fs = require('fs');
-const bodyParser = require('body-parser');
 const cors = require('cors');
-const path = require('path');
+const { getStudents, saveStudents } = require('./storage');
 
 const app = express();
-const DATA_FILE = path.join(__dirname, '..', 'students.json'); // Ensure this file is in your repository root
+const ASSIGNMENT_KEYS = [
+  'assignment1',
+  'assignment2',
+  'assignment3',
+  'assignment4',
+  'assignment5',
+];
 
-// Enable CORS and JSON body parsing
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// API endpoint: GET all students (asynchronous version)
-app.get('/api/students', (req, res) => {
-  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-    if (err) {
-      console.error('Error reading file:', err);
-      return res.status(500).json({ error: 'Error reading student data' });
-    }
-    let students = [];
-    try {
-      students = data ? JSON.parse(data) : [];
-    } catch (parseErr) {
-      console.error('Error parsing JSON:', parseErr);
-      return res.status(500).json({ error: 'Error parsing student data' });
-    }
-    res.json(students);
-  });
+function toError(message, status = 400) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+function normalizeAssignments(assignments) {
+  if (!assignments || typeof assignments !== 'object' || Array.isArray(assignments)) {
+    throw toError('assignments must be an object with assignment1-assignment5');
+  }
+
+  const normalized = {};
+  for (const key of ASSIGNMENT_KEYS) {
+    const value = assignments[key] || {};
+    const completed = Boolean(value.completed);
+    const date = typeof value.date === 'string' ? value.date : '';
+    normalized[key] = { completed, date };
+  }
+
+  return normalized;
+}
+
+function validateStudentPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    throw toError('Invalid request body');
+  }
+
+  const rollNo = String(payload.rollNo || '').trim();
+  const name = String(payload.name || '').trim();
+
+  if (!rollNo) {
+    throw toError('rollNo is required');
+  }
+
+  if (!name) {
+    throw toError('name is required');
+  }
+
+  const assignments = normalizeAssignments(payload.assignments);
+
+  return {
+    rollNo,
+    name,
+    assignments,
+  };
+}
+
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({ ok: true });
 });
 
-// API endpoint: POST add a new student (synchronous for now, but consider converting to async)
-app.post('/api/students', (req, res) => {
-  const newStudent = req.body;
-  let students = [];
+app.get('/api/students', async (_req, res, next) => {
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      students = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    }
-    students.push(newStudent);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(students, null, 2));
-    res.status(201).json(newStudent);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error saving student data' });
+    const students = await getStudents();
+    res.status(200).json(students);
+  } catch (error) {
+    next(error);
   }
 });
 
-// API endpoint: PUT update a student by rollNo (synchronous for now)
-app.put('/api/students/:rollNo', (req, res) => {
-  const rollNo = req.params.rollNo;
-  const updatedStudent = req.body;
-  let students = [];
+app.post('/api/students', async (req, res, next) => {
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      students = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const student = validateStudentPayload(req.body);
+    const students = await getStudents();
+    const alreadyExists = students.some((entry) => entry.rollNo === student.rollNo);
+    if (alreadyExists) {
+      throw toError('Student with this rollNo already exists', 409);
     }
-    const index = students.findIndex(s => s.rollNo == rollNo);
-    if (index !== -1) {
-      students[index] = updatedStudent;
-      fs.writeFileSync(DATA_FILE, JSON.stringify(students, null, 2));
-      res.json(updatedStudent);
-    } else {
-      res.status(404).json({ error: 'Student not found' });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating student data' });
+
+    students.push(student);
+    await saveStudents(students);
+    res.status(201).json(student);
+  } catch (error) {
+    next(error);
   }
 });
 
-// Export the app wrapped in serverless-http
-module.exports = serverless(app);
+app.put('/api/students/:rollNo', async (req, res, next) => {
+  try {
+    const rollNo = String(req.params.rollNo || '').trim();
+    if (!rollNo) {
+      throw toError('rollNo is required in path');
+    }
+
+    const updatedStudent = validateStudentPayload({ ...req.body, rollNo });
+    const students = await getStudents();
+    const index = students.findIndex((entry) => entry.rollNo === rollNo);
+    if (index === -1) {
+      throw toError('Student not found', 404);
+    }
+
+    students[index] = updatedStudent;
+    await saveStudents(students);
+    res.status(200).json(updatedStudent);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/api/students/:rollNo', async (req, res, next) => {
+  try {
+    const rollNo = String(req.params.rollNo || '').trim();
+    if (!rollNo) {
+      throw toError('rollNo is required in path');
+    }
+
+    const students = await getStudents();
+    const nextStudents = students.filter((entry) => entry.rollNo !== rollNo);
+    if (nextStudents.length === students.length) {
+      throw toError('Student not found', 404);
+    }
+
+    await saveStudents(nextStudents);
+    res.status(200).json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.use((error, _req, res, _next) => {
+  const status = error.status || 500;
+  const message = status >= 500 ? 'Internal server error' : error.message;
+  if (status >= 500) {
+    console.error(error);
+  }
+  res.status(status).json({ error: message });
+});
+
+module.exports = app;

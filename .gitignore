@@ -1,8 +1,10 @@
 # Dependencies
 node_modules/
+.vercel/
 
 # Environment variables (if any)
 .env
+.env.local
 
 # Logs
 logs
@@ -11,3 +13,4 @@ logs
 # OS files (optional)
 .DS_Store
 Thumbs.db
+.vercel
