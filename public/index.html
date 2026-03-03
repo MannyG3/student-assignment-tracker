@@ -8,9 +8,39 @@
   </head>
   <body>
     <main class="container">
+      <section class="panel auth-panel" id="authPanel">
+        <div class="auth-head">
+          <h2>Authentication</h2>
+          <span id="authStatus" class="auth-status">Please sign in</span>
+        </div>
+        <form id="loginForm" class="auth-form" novalidate>
+          <input id="password" name="password" type="password" placeholder="Admin password (optional mode)" />
+          <input id="email" name="email" type="email" placeholder="SSO email" />
+          <input id="displayName" name="displayName" type="text" placeholder="Full name" />
+          <select id="role" name="role">
+            <option value="faculty">Faculty</option>
+            <option value="admin">Admin</option>
+            <option value="student">Student</option>
+          </select>
+          <input id="studentRollNo" name="studentRollNo" type="text" placeholder="Student roll no (for student role)" />
+          <button type="submit" class="primary" data-mode="password">Password Login</button>
+          <button type="submit" class="secondary" data-mode="sso">SSO Login (Mock)</button>
+          <button type="button" class="secondary hidden" id="logoutButton">Logout</button>
+        </form>
+      </section>
+
+      <div id="appContent" class="app-shell hidden">
       <section class="panel">
-        <h1>Student Assignment Tracker</h1>
+        <div class="panel-head">
+          <h1>Student Assignment Tracker</h1>
+          <div class="report-actions">
+            <button type="button" class="secondary" id="viewSummaryBtn">View Summary</button>
+            <button type="button" class="secondary" id="exportCsvBtn">Export CSV</button>
+            <button type="button" class="secondary" id="downloadBackupBtn">Download Backup</button>
+          </div>
+        </div>
         <p class="subtitle">Add students, track assignment status, and keep records synced through the API.</p>
+        <div id="summaryPanel" class="summary-panel hidden"></div>
 
         <form id="studentForm" class="student-form" novalidate>
           <div class="field-row">
@@ -20,6 +50,18 @@
           <div class="field-row">
             <label for="name">Student Name</label>
             <input id="name" name="name" type="text" required />
+          </div>
+          <div class="field-row">
+            <label for="className">Class</label>
+            <input id="className" name="className" type="text" placeholder="FY BSc CS A" />
+          </div>
+          <div class="field-row">
+            <label for="subject">Subject</label>
+            <input id="subject" name="subject" type="text" placeholder="Data Structures" />
+          </div>
+          <div class="field-row">
+            <label for="semester">Semester</label>
+            <input id="semester" name="semester" type="text" placeholder="Sem 2" />
           </div>
           <div class="assignments-grid">
             <label><input type="checkbox" data-assignment="assignment1" /> Assignment 1</label>
@@ -39,6 +81,9 @@
               <tr>
                 <th>Roll No</th>
                 <th>Name</th>
+                <th>Class</th>
+                <th>Subject</th>
+                <th>Semester</th>
                 <th>A1</th>
                 <th>A2</th>
                 <th>A3</th>
@@ -51,6 +96,7 @@
           </table>
         </div>
       </section>
+      </div>
     </main>
 
     <div id="toast" class="toast" aria-live="polite"></div>
